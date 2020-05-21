@@ -103,7 +103,7 @@ public class SRComService {
                 }
                 output.deleteCharAt(output.length() - 1);
                 output.append(": ").append(run.getWeblink());
-                if (output.length() < 140) {
+                if (output.length() < 280) {
                     try {
                         this.messageQueue.getQueue().put(output.toString());
                     } catch (final InterruptedException e) {

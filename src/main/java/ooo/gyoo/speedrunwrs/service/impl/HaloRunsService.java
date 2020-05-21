@@ -61,7 +61,7 @@ public class HaloRunsService {
                     message.append(" in ");
                     message.append(cells.get(3).getAllElements().get(1).text());
                     message.append(" by ");
-                    message.append(cells.get(3).getAllElements().get(2).getAllElements().get(0).text());
+                    message.append(cells.get(3).getAllElements().get(2).getAllElements().get(1).text());
                     message.append(": ");
                     message.append(cells.get(3).getAllElements().get(1).getElementsByTag("a").get(0).attr("href"));
                     try {

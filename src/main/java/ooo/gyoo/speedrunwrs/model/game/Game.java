@@ -11,6 +11,7 @@ public class Game {
     private String id;
     private Names names;
     private Boolean romhack;
+    private Ruleset ruleset;
 
     public String getId() {
         return this.id;
@@ -34,5 +35,13 @@ public class Game {
 
     public void setRomhack(final Boolean romhack) {
         this.romhack = romhack;
+    }
+
+    public Ruleset getRuleset() {
+        return this.ruleset;
+    }
+
+    public void setRuleset(final Ruleset ruleset) {
+        this.ruleset = ruleset;
     }
 }

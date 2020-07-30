@@ -81,6 +81,10 @@ public class SRComService {
                     LOGGER.info("Run " + run.getId() + " is a romhack");
                     continue;
                 }
+                if (!game.getRuleset().isRequireVerification()) {
+                    LOGGER.info("Run " + run.getId() + " is not verified");
+                    continue;
+                }
                 if (game.getNames().getInternational().toLowerCase().contains("memes") ||
                         category.getName().toLowerCase().contains("memes") ||
                         game.getNames().getInternational().toLowerCase().contains("category extensions") ||

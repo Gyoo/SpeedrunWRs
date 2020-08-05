@@ -1,6 +1,7 @@
 package ooo.gyoo.speedrunwrs.service.impl;
 
 import ooo.gyoo.speedrunwrs.model.MessageQueue;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +55,7 @@ public class HaloRunsService {
             for (int i = 1; i < lines.size(); i++) {
                 final Element tr = lines.get(i);
                 final Elements cells = tr.getElementsByTag("td");
-                if (tr.text().equals(this.lastRunId)) {
+                if (StringUtils.equals(DigestUtils.md5DigestAsHex(tr.text().getBytes()), this.lastRunId)) {
                     break;
                 }
                 if ("Full Game".equals(cells.get(1).getAllElements().get(1).text())) {
@@ -71,7 +73,7 @@ public class HaloRunsService {
                     }
                 }
             }
-            this.lastRunId = lines.get(1).text();
+            this.lastRunId = DigestUtils.md5DigestAsHex(lines.get(1).text().getBytes());
             Files.write(this.file.toPath(), this.lastRunId.getBytes());
         } catch (final IOException e) {
             LOGGER.error(e.getMessage());

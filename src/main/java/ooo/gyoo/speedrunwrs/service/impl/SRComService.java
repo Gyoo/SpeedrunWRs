@@ -58,7 +58,7 @@ public class SRComService {
         }
     }
 
-    //@Scheduled(fixedDelay = 60000, initialDelay = 0)
+    @Scheduled(fixedDelay = 60000, initialDelay = 0)
     public void run() {
         final List<Run> runs = this.srComClient.listRuns().getData();
         for (final Run run : runs) {

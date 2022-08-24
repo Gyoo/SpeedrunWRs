@@ -36,7 +36,7 @@ public class MessageService {
         if (message != null) {
             LOGGER.info(message);
             final String finalMessage = message;
-            //this.services.values().forEach(s -> s.submit(finalMessage));
+            this.services.values().forEach(s -> s.submit(finalMessage));
         }
     }
 }

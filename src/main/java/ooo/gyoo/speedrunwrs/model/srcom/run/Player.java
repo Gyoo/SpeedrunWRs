@@ -1,7 +1,7 @@
-package ooo.gyoo.speedrunwrs.model.run;
+package ooo.gyoo.speedrunwrs.model.srcom.run;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import ooo.gyoo.speedrunwrs.model.game.Names;
+import ooo.gyoo.speedrunwrs.model.srcom.game.Names;
 
 /**
  * Created by Gyoo on 18/06/2016.

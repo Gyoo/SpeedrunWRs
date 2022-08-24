@@ -1,11 +1,13 @@
 package ooo.gyoo.speedrunwrs.service.impl;
 
+import ooo.gyoo.speedrunwrs.api.HaloRunsClient;
 import ooo.gyoo.speedrunwrs.model.MessageQueue;
+import ooo.gyoo.speedrunwrs.model.haloruns.Entry;
+import ooo.gyoo.speedrunwrs.model.haloruns.HaloRunsResponse;
+import ooo.gyoo.speedrunwrs.model.haloruns.Participant;
+import ooo.gyoo.speedrunwrs.model.srcom.run.Player;
+import ooo.gyoo.speedrunwrs.utils.DurationUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +18,13 @@ import org.springframework.util.DigestUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.stream.Collectors;
 
 @Service
 public class HaloRunsService {
 
     static Logger LOGGER = LoggerFactory.getLogger(HaloRunsService.class);
+    private final HaloRunsClient haloRunsClient;
     private final MessageQueue messageQueue;
 
     private final File file;
@@ -28,7 +32,8 @@ public class HaloRunsService {
     private String lastRunId;
 
     @Autowired
-    public HaloRunsService(final MessageQueue messageQueue) {
+    public HaloRunsService(HaloRunsClient haloRunsClient, final MessageQueue messageQueue) {
+        this.haloRunsClient = haloRunsClient;
         this.messageQueue = messageQueue;
 
         this.file = new File("last-haloruns.txt");
@@ -50,30 +55,28 @@ public class HaloRunsService {
     @Scheduled(fixedDelay = 60000, initialDelay = 0)
     public void run() {
         try {
-            final Document doc = Jsoup.connect("https://haloruns.com/records/recent").get();
-            final Elements lines = doc.select("#recentWRTable").first().getElementsByTag("tbody").first().getElementsByTag("tr");
-            for (int i = 1; i < lines.size(); i++) {
-                final Element tr = lines.get(i);
-                final Elements cells = tr.getElementsByTag("td");
-                if (StringUtils.equals(DigestUtils.md5DigestAsHex(tr.text().getBytes()), this.lastRunId)) {
-                    break;
-                }
-                if ("Full Game".equals(cells.get(1).getAllElements().get(1).text())) {
-                    final StringBuilder message = new StringBuilder(cells.get(1).getAllElements().get(2).text());
-                    message.append(" in ");
-                    message.append(cells.get(3).getAllElements().get(1).text());
-                    message.append(" by ");
-                    message.append(cells.get(3).getAllElements().get(2).getAllElements().get(1).text());
-                    message.append(": ");
-                    message.append(cells.get(3).getAllElements().get(1).getElementsByTag("a").get(0).attr("href"));
-                    try {
-                        this.messageQueue.getQueue().put(message.toString());
-                    } catch (final InterruptedException e) {
-                        LOGGER.error(e.getMessage());
+            HaloRunsResponse response = haloRunsClient.listRuns();
+            for(Entry entry : response.getEntries()){
+                if(StringUtils.equalsIgnoreCase(entry.getRunId(), lastRunId)) break;
+                if(StringUtils.equalsIgnoreCase("Full Game", entry.getLevelName())){
+                    String time = DurationUtils.getTime(entry.getDuration());
+                    final StringBuilder output = new StringBuilder(entry.getGameName() + " - " + entry.getCategoryName()
+                            + " in " + time
+                            + " by " + entry.getParticipants().stream().map(Participant::getUsername).collect(Collectors.joining(", ")));
+                    //output.append(": ").append(entry.getParticipants().stream().map(Participant::getEvidenceLink).collect(Collectors.joining("\n")));
+                    output.append("\nhttps://haloruns.com").append(entry.getLeaderboardUrl());
+                    if (output.length() < 280) {
+                        try {
+                            this.messageQueue.getQueue().put(output.toString());
+                        } catch (final InterruptedException e) {
+                            LOGGER.error(e.getMessage());
+                        }
                     }
+                } else {
+                    LOGGER.info("Run " + entry.getRunId() + " is not full game");
                 }
             }
-            this.lastRunId = DigestUtils.md5DigestAsHex(lines.get(1).text().getBytes());
+            this.lastRunId = response.getEntries().get(0).getRunId();
             Files.write(this.file.toPath(), this.lastRunId.getBytes());
         } catch (final IOException e) {
             LOGGER.error(e.getMessage());

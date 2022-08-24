@@ -1,4 +1,4 @@
-package ooo.gyoo.speedrunwrs.model.variable;
+package ooo.gyoo.speedrunwrs.model.srcom.variable;
 
 import java.util.Map;
 

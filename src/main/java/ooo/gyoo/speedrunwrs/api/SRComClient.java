@@ -4,15 +4,15 @@ import feign.CollectionFormat;
 import feign.Param;
 import feign.QueryMap;
 import feign.RequestLine;
-import ooo.gyoo.speedrunwrs.model.SRComResponse;
-import ooo.gyoo.speedrunwrs.model.leaderboard.Leaderboard;
-import ooo.gyoo.speedrunwrs.model.run.Run;
-import ooo.gyoo.speedrunwrs.model.variable.Variable;
+import ooo.gyoo.speedrunwrs.model.srcom.SRComResponse;
+import ooo.gyoo.speedrunwrs.model.srcom.leaderboard.Leaderboard;
+import ooo.gyoo.speedrunwrs.model.srcom.run.Run;
+import ooo.gyoo.speedrunwrs.model.srcom.variable.Variable;
 
 import java.util.List;
 import java.util.Map;
 
-public interface SRCom {
+public interface SRComClient {
 
     @RequestLine(value = "GET /runs?status=verified&orderby=verify-date&direction=desc&embed=game,category,players", collectionFormat = CollectionFormat.CSV)
     SRComResponse<List<Run>> listRuns();

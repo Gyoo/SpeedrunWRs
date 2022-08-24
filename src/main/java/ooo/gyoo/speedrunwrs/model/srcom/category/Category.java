@@ -1,4 +1,4 @@
-package ooo.gyoo.speedrunwrs.model.category;
+package ooo.gyoo.speedrunwrs.model.srcom.category;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

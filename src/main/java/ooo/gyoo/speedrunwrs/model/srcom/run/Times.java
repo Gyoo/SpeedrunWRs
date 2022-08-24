@@ -1,4 +1,4 @@
-package ooo.gyoo.speedrunwrs.model.run;
+package ooo.gyoo.speedrunwrs.model.srcom.run;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

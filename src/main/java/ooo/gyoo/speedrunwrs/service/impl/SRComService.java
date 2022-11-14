@@ -1,5 +1,6 @@
 package ooo.gyoo.speedrunwrs.service.impl;
 
+import kotlin.collections.ArrayDeque;
 import ooo.gyoo.speedrunwrs.api.SRComClient;
 import ooo.gyoo.speedrunwrs.model.MessageQueue;
 import ooo.gyoo.speedrunwrs.model.srcom.category.Category;
@@ -9,7 +10,7 @@ import ooo.gyoo.speedrunwrs.model.srcom.run.Player;
 import ooo.gyoo.speedrunwrs.model.srcom.run.Run;
 import ooo.gyoo.speedrunwrs.model.srcom.variable.Variable;
 import ooo.gyoo.speedrunwrs.utils.DurationUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,22 +21,20 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SRComService {
 
-    static Logger LOGGER = LoggerFactory.getLogger(MessageService.class);
+    static Logger LOGGER = LoggerFactory.getLogger(SRComService.class);
     private final MessageQueue messageQueue;
 
     private final SRComClient srComClient;
 
     private final File file;
 
-    private String lastRunId;
+    private List<String> lastRunsId;
 
     @Autowired
     public SRComService(final MessageQueue messageQueue, final SRComClient srComClient) {
@@ -46,9 +45,9 @@ public class SRComService {
         try {
             if (this.file.exists()) {
                 if (!Files.readAllLines(this.file.toPath()).isEmpty()) {
-                    this.lastRunId = Files.readAllLines(this.file.toPath()).get(0);
+                    this.lastRunsId = Files.readAllLines(this.file.toPath());
                 } else {
-                    this.lastRunId = "";
+                    this.lastRunsId = new ArrayList<>();
                 }
             } else {
                 this.file.createNewFile();
@@ -62,8 +61,8 @@ public class SRComService {
     public void run() {
         final List<Run> runs = this.srComClient.listRuns().getData();
         for (final Run run : runs) {
-            if (run.getId().equals(this.lastRunId)) {
-                break;
+            if (this.lastRunsId.contains(run.getId())) {
+                continue;
             }
             if (run.getLevel() != null) {
                 LOGGER.info("Run " + run.getId() + " is an IL");
@@ -89,8 +88,13 @@ public class SRComService {
                 if (game.getNames().getInternational().toLowerCase().contains("memes") ||
                         category.getName().toLowerCase().contains("memes") ||
                         game.getNames().getInternational().toLowerCase().contains("category extensions") ||
-                        category.getName().toLowerCase().contains("category extensions")) {
+                        category.getName().toLowerCase().contains("category extensions") ||
+                        category.getName().toLowerCase().contains("score")) {
                     LOGGER.info("Run " + run.getId() + " is a meme");
+                    continue;
+                }
+                if(Duration.parse(run.getTimes().getPrimary()).toMillis() < 1000){
+                    LOGGER.info("Run " + run.getId() + " is too short");
                     continue;
                 }
                 final String time = DurationUtils.getTime(Duration.parse(run.getTimes().getPrimary()));
@@ -119,9 +123,9 @@ public class SRComService {
                 LOGGER.info("Run " + run.getId() + " is not a WR");
             }
         }
-        this.lastRunId = runs.get(0).getId();
+        this.lastRunsId = runs.stream().map(Run::getId).collect(Collectors.toList());
         try {
-            Files.write(this.file.toPath(), this.lastRunId.getBytes());
+            FileUtils.writeLines(this.file, this.lastRunsId);
         } catch (final IOException e) {
             LOGGER.error(e.getMessage());
         }

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,9 +46,9 @@ public class SRComService {
         try {
             if (this.file.exists()) {
                 if (!Files.readAllLines(this.file.toPath()).isEmpty()) {
-                    this.lastRunsId = Files.readAllLines(this.file.toPath());
+                    this.lastRunsId = new CopyOnWriteArrayList<>(Files.readAllLines(this.file.toPath()));
                 } else {
-                    this.lastRunsId = new ArrayList<>();
+                    this.lastRunsId = new CopyOnWriteArrayList<>();
                 }
             } else {
                 this.file.createNewFile();

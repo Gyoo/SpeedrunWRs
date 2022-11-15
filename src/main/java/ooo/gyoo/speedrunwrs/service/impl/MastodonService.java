@@ -28,7 +28,7 @@ public class MastodonService implements SubmitService {
     public void submit(final String message) {
         final Statuses statuses = new Statuses(this.mastodon);
         try {
-            statuses.postStatus(message, null, null, false, null, Status.Visibility.Public).execute();
+            statuses.postStatus(message, null, null, false, null, Status.Visibility.Public, "en").execute();
         } catch (final Mastodon4jRequestException e) {
             LOGGER.error(e.getMessage(), e);
         }

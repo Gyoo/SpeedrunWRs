@@ -24,7 +24,7 @@ public class TwitterService implements SubmitService {
     @Override
     public void submit(final String message) {
         try {
-            this.twitter.updateStatus(message);
+            this.twitter.v1().tweets().updateStatus(message);
         } catch (final TwitterException e) {
             LOGGER.error(e.getMessage());
         }

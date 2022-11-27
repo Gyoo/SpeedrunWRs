@@ -10,10 +10,12 @@ import ooo.gyoo.speedrunwrs.model.srcom.run.Player;
 import ooo.gyoo.speedrunwrs.model.srcom.run.Run;
 import ooo.gyoo.speedrunwrs.model.srcom.variable.Variable;
 import ooo.gyoo.speedrunwrs.utils.DurationUtils;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,9 +35,9 @@ public class SRComService {
 
     private final SRComClient srComClient;
 
-    private final File file;
+    private File file;
 
-    private List<String> lastRunsId;
+    private final Collection<String> lastRunsId = new CircularFifoQueue<>(100);
 
     @Autowired
     public SRComService(final MessageQueue messageQueue, final SRComClient srComClient) {
@@ -46,9 +48,7 @@ public class SRComService {
         try {
             if (this.file.exists()) {
                 if (!Files.readAllLines(this.file.toPath()).isEmpty()) {
-                    this.lastRunsId = new CopyOnWriteArrayList<>(Files.readAllLines(this.file.toPath()));
-                } else {
-                    this.lastRunsId = new CopyOnWriteArrayList<>();
+                    this.lastRunsId.addAll(Files.readAllLines(this.file.toPath()));
                 }
             } else {
                 this.file.createNewFile();
@@ -59,12 +59,15 @@ public class SRComService {
     }
 
     @Scheduled(fixedDelay = 60000, initialDelay = 0)
+    @Async(value = "srcomThreadPool")
     public void run() {
         final List<Run> runs = this.srComClient.listRuns().getData();
+        Collections.reverse(runs); //Reading list from last to first because lastRunsId is FIFO. We want the "oldest" runs to be purged first.
         for (final Run run : runs) {
             if (this.lastRunsId.contains(run.getId())) {
                 continue;
             }
+            this.lastRunsId.add(run.getId());
             if (run.getLevel() != null) {
                 LOGGER.info("Run " + run.getId() + " is an IL");
                 continue;
@@ -124,7 +127,6 @@ public class SRComService {
                 LOGGER.info("Run " + run.getId() + " is not a WR");
             }
         }
-        this.lastRunsId = runs.stream().map(Run::getId).collect(Collectors.toList());
         try {
             FileUtils.writeLines(this.file, this.lastRunsId);
         } catch (final IOException e) {

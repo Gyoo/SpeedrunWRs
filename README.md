@@ -4,7 +4,7 @@ SpeedrunWRs is a bot that alerts of new speedrun world records on multiple platf
 
 ## Installation
 
-You will need Java JDK 14 to run SpeedrunWRs on your computer for development purposes.
+You will need Java JDK 21 to run SpeedrunWRs on your computer for development purposes.
 
 In local environment, no message is sent to social media, but everything is logged in the console. If you want to implement a new social media, please make sure to annotate it with `@Profile("prod")` after testing.
 

@@ -1,6 +1,5 @@
 package ooo.gyoo.speedrunwrs.service.impl;
 
-import kotlin.collections.ArrayDeque;
 import ooo.gyoo.speedrunwrs.api.SRComClient;
 import ooo.gyoo.speedrunwrs.model.MessageQueue;
 import ooo.gyoo.speedrunwrs.model.srcom.category.Category;
@@ -12,6 +11,7 @@ import ooo.gyoo.speedrunwrs.model.srcom.variable.Variable;
 import ooo.gyoo.speedrunwrs.utils.DurationUtils;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 @Service
 public class SRComService {
@@ -61,70 +59,69 @@ public class SRComService {
     @Scheduled(fixedDelay = 60000, initialDelay = 0)
     @Async(value = "srcomThreadPool")
     public void run() {
-        final List<Run> runs = this.srComClient.listRuns().getData();
+        final List<Run> runs = this.srComClient.listRuns().data();
         Collections.reverse(runs); //Reading list from last to first because lastRunsId is FIFO. We want the "oldest" runs to be purged first.
         for (final Run run : runs) {
-            if (this.lastRunsId.contains(run.getId())) {
+            if (this.lastRunsId.contains(run.id())) {
                 continue;
             }
-            this.lastRunsId.add(run.getId());
-            if (run.getLevel() != null) {
-                LOGGER.info("Run " + run.getId() + " is an IL");
+            this.lastRunsId.add(run.id());
+            if (run.level() != null) {
+                LOGGER.info("Run {} is an IL", run.id());
                 continue;
             }
             final Map<String, Variable> variables = this.getVariables(run);
-            final Leaderboard leaderboard = this.srComClient.getTop(run.getGame().getData().getId(), run.getCategory().getData().getId(), run.getValues()).getData();
-            if (run.getId().equals(leaderboard.getRuns().get(0).getRun().getId())) {
-                final Game game = run.getGame().getData();
-                final Category category = run.getCategory().getData();
-                if (category.getMiscellaneous()) {
-                    LOGGER.info("Run " + run.getId() + " is misc");
+            final Leaderboard leaderboard = this.srComClient.getTop(run.game().data().id(), run.category().data().id(), run.values()).data();
+            if (run.id().equals(leaderboard.runs().getFirst().run().id())) {
+                final Game game = run.game().data();
+                final Category category = run.category().data();
+                if (category.miscellaneous()) {
+                    LOGGER.info("Run {} is misc", run.id());
                     continue;
                 }
-                if (game.getRomhack()) {
-                    LOGGER.info("Run " + run.getId() + " is a romhack");
+                if (game.romhack()) {
+                    LOGGER.info("Run {} is a romhack", run.id());
                     continue;
                 }
-                if (!game.getRuleset().isRequireVerification()) {
-                    LOGGER.info("Run " + run.getId() + " is not verified");
+                if (!game.ruleset().requireVerification()) {
+                    LOGGER.info("Run " + run.id() + " is not verified");
                     continue;
                 }
-                if (game.getNames().getInternational().toLowerCase().contains("memes") ||
-                        category.getName().toLowerCase().contains("memes") ||
-                        game.getNames().getInternational().toLowerCase().contains("category extensions") ||
-                        category.getName().toLowerCase().contains("category extensions") ||
-                        category.getName().toLowerCase().contains("score")) {
-                    LOGGER.info("Run " + run.getId() + " is a meme");
+                if (game.names().international().toLowerCase().contains("memes") ||
+                        category.name().toLowerCase().contains("memes") ||
+                        game.names().international().toLowerCase().contains("category extensions") ||
+                        category.name().toLowerCase().contains("category extensions") ||
+                        category.name().toLowerCase().contains("score")) {
+                    LOGGER.info("Run {} is a meme", run.id());
                     continue;
                 }
-                if(Duration.parse(run.getTimes().getPrimary()).toMillis() < 1000){
-                    LOGGER.info("Run " + run.getId() + " is too short");
+                if(Duration.parse(run.times().primary()).toMillis() < 1000){
+                    LOGGER.info("Run {} is too short", run.id());
                     continue;
                 }
-                final String time = DurationUtils.getTime(Duration.parse(run.getTimes().getPrimary()));
+                final String time = DurationUtils.getTime(Duration.parse(run.times().primary()));
                 final String timing = this.getTiming(leaderboard);
                 final String variablesString = this.variablesToString(run, variables);
-                final StringBuilder output = new StringBuilder(game.getNames().getInternational() + " - " + category.getName() + " " + variablesString + "in " + time + timing + " by");
-                for (final Player player : run.getPlayers().getData()) {
-                    switch (player.getRel()) {
+                final StringBuilder output = new StringBuilder(game.names().international() + " - " + category.name() + " " + variablesString + "in " + time + timing + " by");
+                for (final Player player : run.players().data()) {
+                    switch (player.rel()) {
                         case "user" -> {
-                            final String username = player.getNames().getInternational();
+                            final String username = player.names().international();
                             output.append(" ").append(username).append(",");
                         }
-                        case "guest" -> output.append(" ").append(player.getName()).append(",");
+                        case "guest" -> output.append(" ").append(player.name()).append(",");
                     }
                 }
                 output.deleteCharAt(output.length() - 1);
-                output.append(": ").append(run.getWeblink());
-                if (output.length() < 280) {
+                if (output.length() < 300) {
                     try {
-                        this.messageQueue.getQueue().put(output.toString());
+                        this.messageQueue.getQueue().put(Pair.of(output.toString(), run.weblink()));
                     } catch (final InterruptedException e) {
                         LOGGER.error(e.getMessage());
                     }
                 }
             } else {
-                LOGGER.info("Run " + run.getId() + " is not a WR");
+                LOGGER.info("Run {} is not a WR", run.id());
             }
         }
         try {
@@ -136,9 +133,9 @@ public class SRComService {
 
     private Map<String, Variable> getVariables(final Run run) {
         final Map<String, Variable> variables = new HashMap<>();
-        for (final Iterator<Map.Entry<String, String>> it = run.getValues().entrySet().iterator(); it.hasNext(); ) {
+        for (final Iterator<Map.Entry<String, String>> it = run.values().entrySet().iterator(); it.hasNext(); ) {
             final Map.Entry<String, String> entry = it.next();
-            final Variable variable = this.srComClient.getVariable(entry.getKey()).getData();
+            final Variable variable = this.srComClient.getVariable(entry.getKey()).data();
             if (variable.isSubcategory()) {
                 variables.put("var-" + entry.getKey(), variable);
             } else {
@@ -150,16 +147,16 @@ public class SRComService {
 
     private String variablesToString(final Run run, final Map<String, Variable> variables) {
         final StringBuilder builder = new StringBuilder();
-        for (final Map.Entry<String, String> entry : run.getValues().entrySet()) {
+        for (final Map.Entry<String, String> entry : run.values().entrySet()) {
             builder.append("[")
-                    .append(variables.get("var-" + entry.getKey()).getValues().getValues().get(entry.getValue()).getLabel())
+                    .append(variables.get("var-" + entry.getKey()).values().values().get(entry.getValue()).label())
                     .append("] ");
         }
         return builder.toString();
     }
 
     private String getTiming(final Leaderboard leaderboard) {
-        return switch (leaderboard.getTiming()) {
+        return switch (leaderboard.timing()) {
             case "realtime_noloads" -> " (No Loads)";
             case "ingame" -> " (IGT)";
             default -> "";

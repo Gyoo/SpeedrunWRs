@@ -5,16 +5,15 @@ import ooo.gyoo.speedrunwrs.model.MessageQueue;
 import ooo.gyoo.speedrunwrs.model.haloruns.Entry;
 import ooo.gyoo.speedrunwrs.model.haloruns.HaloRunsResponse;
 import ooo.gyoo.speedrunwrs.model.haloruns.Participant;
-import ooo.gyoo.speedrunwrs.model.srcom.run.Player;
 import ooo.gyoo.speedrunwrs.utils.DurationUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,7 +40,7 @@ public class HaloRunsService {
         try {
             if (this.file.exists()) {
                 if (!Files.readAllLines(this.file.toPath()).isEmpty()) {
-                    this.lastRunId = Files.readAllLines(this.file.toPath()).get(0);
+                    this.lastRunId = Files.readAllLines(this.file.toPath()).getFirst();
                 } else {
                     this.lastRunId = "";
                 }
@@ -58,27 +57,25 @@ public class HaloRunsService {
     public void run() {
         try {
             HaloRunsResponse response = haloRunsClient.listRuns();
-            for(Entry entry : response.getEntries()){
-                if(StringUtils.equalsIgnoreCase(entry.getRunId(), lastRunId)) break;
-                if(StringUtils.equalsIgnoreCase("Full Game", entry.getLevelName())){
-                    String time = DurationUtils.getTime(entry.getDuration());
-                    final StringBuilder output = new StringBuilder(entry.getGameName() + " - " + entry.getCategoryName()
+            for(Entry entry : response.entries()){
+                if(StringUtils.equalsIgnoreCase(entry.runId(), lastRunId)) break;
+                if(StringUtils.equalsIgnoreCase("Full Game", entry.levelName())){
+                    String time = DurationUtils.getTime(entry.duration());
+                    final StringBuilder output = new StringBuilder(entry.gameName() + " - " + entry.categoryName()
                             + " in " + time
-                            + " by " + entry.getParticipants().stream().map(Participant::getUsername).collect(Collectors.joining(", ")));
-                    //output.append(": ").append(entry.getParticipants().stream().map(Participant::getEvidenceLink).collect(Collectors.joining("\n")));
-                    output.append("\nhttps://haloruns.com").append(entry.getLeaderboardUrl());
-                    if (output.length() < 280) {
+                            + " by " + entry.participants().stream().map(Participant::username).collect(Collectors.joining(", ")));
+                    if (output.length() < 300) {
                         try {
-                            this.messageQueue.getQueue().put(output.toString());
+                            this.messageQueue.getQueue().put(Pair.of(output.toString(), "https://haloruns.com" + entry.leaderboardUrl()));
                         } catch (final InterruptedException e) {
                             LOGGER.error(e.getMessage());
                         }
                     }
                 } else {
-                    LOGGER.info("Run " + entry.getRunId() + " is not full game");
+                    LOGGER.info("Run {} is not full game", entry.runId());
                 }
             }
-            this.lastRunId = response.getEntries().get(0).getRunId();
+            this.lastRunId = response.entries().getFirst().runId();
             Files.write(this.file.toPath(), this.lastRunId.getBytes());
         } catch (final IOException e) {
             LOGGER.error(e.getMessage());

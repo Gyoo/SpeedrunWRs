@@ -1,12 +1,7 @@
 wrbot:
-  twitter:
-    consumerKey: ${TWITTER_CONSUMER_KEY}
-    consumerSecret: ${TWITTER_CONSUMER_SECRET}
-    accessToken: ${TWITTER_ACCESS_TOKEN}
-    accessTokenSecret: ${TWITTER_ACCESS_TOKEN_SECRET}
-  mastodon:
-    instanceName: ${MASTODON_INSTANCE_NAME}
-    accessToken: ${MASTODON_ACCESS_TOKEN}
+  bluesky:
+    handle: ${BLUESKY_HANDLE}
+    password: ${BLUESKY_PASSWORD}
   speedruncom:
     apiKey: ${SRCOM_API_KEY}
 

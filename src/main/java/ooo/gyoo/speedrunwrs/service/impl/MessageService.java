@@ -2,6 +2,7 @@ package ooo.gyoo.speedrunwrs.service.impl;
 
 import ooo.gyoo.speedrunwrs.model.MessageQueue;
 import ooo.gyoo.speedrunwrs.service.SubmitService;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,16 +30,16 @@ public class MessageService {
     @Scheduled(fixedDelay = 300000)
     @Async(value = "messageThreadPool")
     public void run() {
-        String message = null;
+        Pair<String, String> message = null;
         try {
             message = this.messageQueue.getQueue().take();
         } catch (final InterruptedException e) {
             e.printStackTrace();
         }
         if (message != null) {
-            LOGGER.info(message);
-            final String finalMessage = message;
-            this.services.values().forEach(s -> s.submit(finalMessage));
+            LOGGER.info("{}: {}", message.getLeft(), message.getRight());
+            final Pair<String, String> finalMessage = message;
+            this.services.values().forEach(s -> s.submit(finalMessage.getLeft(), finalMessage.getRight()));
         }
     }
 }

@@ -22,6 +22,11 @@ public class SchedulerConfig {
         return Executors.newScheduledThreadPool(1);
     }
 
+    @Bean(name = "blueskyThreadPool")
+    public Executor blueskyThreadPool(){
+        return Executors.newScheduledThreadPool(1);
+    }
+
     @Bean(name = "messageThreadPool")
     public Executor messageThreadPool(){
         return Executors.newScheduledThreadPool(1);

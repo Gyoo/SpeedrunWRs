@@ -10,7 +10,7 @@
     </parent>
     <groupId>ooo.gyoo</groupId>
     <artifactId>speedrunwrs</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.1</version>
     <name>speedrunwrs</name>
     <description>Bot that posts speedrun world records to multiple platforms</description>
 

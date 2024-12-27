@@ -1,5 +1,6 @@
 package ooo.gyoo.speedrunwrs.service.impl;
 
+import ooo.gyoo.speedrunwrs.model.bluesky.AuthTokenGenerator;
 import ooo.gyoo.speedrunwrs.service.SubmitService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 import work.socialhub.kbsky.Bluesky;
 import work.socialhub.kbsky.BlueskyFactory;
 import work.socialhub.kbsky.api.entity.app.bsky.feed.FeedPostRequest;
-import work.socialhub.kbsky.auth.BearerTokenAuthProvider;
 import work.socialhub.kbsky.model.app.bsky.embed.EmbedExternal;
 import work.socialhub.kbsky.model.app.bsky.embed.EmbedExternalExternal;
 
@@ -21,17 +21,17 @@ public class BlueskyService implements SubmitService {
 
     static Logger LOGGER = LoggerFactory.getLogger(BlueskyService.class);
 
-    private final BearerTokenAuthProvider blueskyAuthProvider;
+    private final AuthTokenGenerator authTokenGenerator;
     private final Bluesky bluesky;
 
-    public BlueskyService(BearerTokenAuthProvider blueskyAuthProvider) {
-        this.blueskyAuthProvider = blueskyAuthProvider;
+    public BlueskyService(AuthTokenGenerator authTokenGenerator) {
+        this.authTokenGenerator = authTokenGenerator;
         this.bluesky = BlueskyFactory.INSTANCE.instance(BSKY_SOCIAL.getUri());
     }
 
     @Override
     public void submit(final String title, final String url) {
-        FeedPostRequest postRequest = new FeedPostRequest(blueskyAuthProvider);
+        FeedPostRequest postRequest = new FeedPostRequest(authTokenGenerator.getToken());
         postRequest.setText(title);
         EmbedExternal embed = new EmbedExternal();
         EmbedExternalExternal external = new EmbedExternalExternal();
